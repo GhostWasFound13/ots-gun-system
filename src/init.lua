@@ -1,3 +1,5 @@
+local OTS_Cam = {}
+
 --// SERVICES //--
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -6,7 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 --// CONSTANTS //--
 local PLAYER = Players.LocalPlayer
 
-local SHOULDER_DIRECTION = { RIGHT = 1, LEFT = -1 }
+local SHOULDER_DIRECTION = {RIGHT = 1, LEFT = -1}
 local VERTICAL_ANGLE_LIMITS = NumberRange.new(-45, 45)
 
 local IS_ON_DESKTOP = UserInputService.MouseEnabled
@@ -19,8 +21,6 @@ local Character = PLAYER.Character or PLAYER.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 
 --// CONFIG //--
-local OTS_Cam = {}
-
 OTS_Cam.CameraSettings = {
     Default = {
         Field_Of_View = 70,
@@ -31,7 +31,7 @@ OTS_Cam.CameraSettings = {
         Touch_Sensitivity_Y = 3,
         Gamepad_Sensitivity_X = 10,
         Gamepad_Sensitivity_Y = 10,
-        Lerp_Speed = 0.1,
+        Lerp_Speed = 0.5,
         Align_Character = true,
         Lock_Mouse = true,
         Shoulder_Direction = SHOULDER_DIRECTION.RIGHT
@@ -46,7 +46,7 @@ OTS_Cam.CameraSettings = {
         Touch_Sensitivity_Y = 1.5,
         Gamepad_Sensitivity_X = 5,
         Gamepad_Sensitivity_Y = 5,
-        Lerp_Speed = 0.1,
+        Lerp_Speed = 0.5,
         Align_Character = true,
         Lock_Mouse = true,
         Shoulder_Direction = SHOULDER_DIRECTION.RIGHT
@@ -116,10 +116,12 @@ local function configureStateForEnabled()
     OTS_Cam.LockMouse(OTS_Cam.CameraSettings[CameraMode].Lock_Mouse)
     OTS_Cam.ShoulderDirection = OTS_Cam.CameraSettings[CameraMode].Shoulder_Direction
 
+    --// Calculate angles //--
     local cameraCFrame = workspace.CurrentCamera.CFrame
     local x, y, z = cameraCFrame:ToOrientation()
     local horizontalAngle = y
     local verticalAngle = x
+    ----
 
     OTS_Cam.HorizontalAngle = horizontalAngle
     OTS_Cam.VerticalAngle = verticalAngle
@@ -139,58 +141,73 @@ local function updateCamera()
 
     currentCamera.CameraType = Enum.CameraType.Scriptable
 
+    --// Moves camera based on Input //--
     local inputDelta = getDelta()
     OTS_Cam.HorizontalAngle -= inputDelta.X / currentCamera.ViewportSize.X
     OTS_Cam.VerticalAngle -= inputDelta.Y / currentCamera.ViewportSize.Y
-    OTS_Cam.VerticalAngle = math.rad(math.clamp(math.deg(OTS_Cam.VerticalAngle), VERTICAL_ANGLE_LIMITS.Min, VERTICAL_ANGLE_LIMITS.Max))
+    OTS_Cam.VerticalAngle = math.rad(
+        math.clamp(math.deg(OTS_Cam.VerticalAngle), VERTICAL_ANGLE_LIMITS.Min, VERTICAL_ANGLE_LIMITS.Max)
+    )
+    ----
 
     local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart then
+    if humanoidRootPart then -- Disable if Player dies
         currentCamera.FieldOfView = Lerp(
             currentCamera.FieldOfView,
             activeCameraSettings.Field_Of_View,
             activeCameraSettings.Lerp_Speed
         )
 
+        --// Address shoulder direction //--
         local offset = activeCameraSettings.Offset
         offset = Vector3.new(offset.X * OTS_Cam.ShoulderDirection, offset.Y, offset.Z)
+        ----
 
+        --// Calculate new camera cframe //--
         local newCameraCFrame = CFrame.new(humanoidRootPart.Position) *
             CFrame.Angles(0, OTS_Cam.HorizontalAngle, 0) *
             CFrame.Angles(OTS_Cam.VerticalAngle, 0, 0) *
             CFrame.new(offset)
 
-        local alpha = 1 - math.exp(-activeCameraSettings.Lerp_Speed * RunService.RenderStepped:Wait())
-        local currentCameraCFrame = currentCamera.CFrame
-        local newCFrame = currentCameraCFrame:Lerp(newCameraCFrame, alpha)
-        currentCamera.CFrame = newCFrame
+        newCameraCFrame = currentCamera.CFrame:Lerp(newCameraCFrame, activeCameraSettings.Lerp_Speed)
+        ----
 
+        --// Raycast for obstructions //--
         local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = { Character }
+        raycastParams.FilterDescendantsInstances = {Character}
         raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
         local raycastResult = workspace:Raycast(
             humanoidRootPart.Position,
-            newCameraCFrame.Position - humanoidRootPart.Position,
+            newCameraCFrame.p - humanoidRootPart.Position,
             raycastParams
         )
+        ----
 
+        --// Address obstructions if any //--
         if raycastResult then
-            local obstructionDisplacement = raycastResult.Position - humanoidRootPart.Position
-            local obstructionPosition = humanoidRootPart.Position + obstructionDisplacement.Unit * (obstructionDisplacement.Magnitude - 0.1)
+            local obstructionDisplacement = (raycastResult.Position - humanoidRootPart.Position)
+            local obstructionPosition = humanoidRootPart.Position + (obstructionDisplacement.Unit * (obstructionDisplacement.Magnitude - 0.1))
             local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = newCameraCFrame:GetComponents()
-            newCameraCFrame = CFrame.new(obstructionPosition.X, obstructionPosition.Y, obstructionPosition.Z, r00, r01, r02, r10, r11, r12, r20, r21, r22)
+            newCameraCFrame = CFrame.new(obstructionPosition.x, obstructionPosition.y, obstructionPosition.z, r00, r01, r02, r10, r11, r12, r20, r21, r22)
         end
+        ----
 
+        --// Address character alignment //--
         if activeCameraSettings.Align_Character then
             local newHumanoidRootPartCFrame = CFrame.new(humanoidRootPart.Position) *
                 CFrame.Angles(0, OTS_Cam.HorizontalAngle, 0)
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(newHumanoidRootPartCFrame, activeCameraSettings.Lerp_Speed / 2)
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(newHumanoidRootPartCFrame, activeCameraSettings.Lerp_Speed/2)
         end
+        ----
+
+        currentCamera.CFrame = newCameraCFrame
     else
         OTS_Cam.Disable()
         CameraWasEnabled = true
     end
 end
+
+--// METHODS //--
 
 function OTS_Cam.SetCharacterAlignment(aligned)
     Humanoid.AutoRotate = not aligned
@@ -229,9 +246,11 @@ function OTS_Cam.Disable()
     RunService:UnbindFromRenderStep("OTS_CAMERA")
 end
 
+--// CONTROLS //--
+
 if IS_ON_DESKTOP then
     UserInputService.InputBegan:Connect(function(inputObject, gameProcessedEvent)
-        if gameProcessedEvent == false and OTS_Cam.IsEnabled then
+        if not gameProcessedEvent and OTS_Cam.IsEnabled then
             if inputObject.KeyCode == Enum.KeyCode.Q then
                 OTS_Cam.ShoulderDirection = SHOULDER_DIRECTION.LEFT
             elseif inputObject.KeyCode == Enum.KeyCode.E then
@@ -250,7 +269,7 @@ if IS_ON_DESKTOP then
     end)
 
     UserInputService.InputEnded:Connect(function(inputObject, gameProcessedEvent)
-        if gameProcessedEvent == false and OTS_Cam.IsEnabled then
+        if not gameProcessedEvent and OTS_Cam.IsEnabled then
             if inputObject.UserInputType == Enum.UserInputType.MouseButton2 then
                 CameraMode = "Default"
             end
