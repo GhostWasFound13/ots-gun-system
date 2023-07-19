@@ -40,7 +40,7 @@ function CLASS.new()
             HorizontalAngle = 0,
             VerticalAngle = 0,
             ShoulderDirection = 1,
-            RotationSensitivity = 1, -- Add a new property for rotation sensitivity
+            RotationSensitivity = 1,
             ----
 
             --// Flags //--
@@ -139,9 +139,11 @@ function CLASS:SetCharacterAlignment(aligned)
     local character = LOCAL_PLAYER.Character
     local humanoid = (character ~= nil) and (character:FindFirstChild("Humanoid"))
 
-    humanoid.AutoRotate = not aligned
-    self.IsCharacterAligned = aligned
-    self.CharacterAlignmentChangedEvent:Fire(aligned)
+    if humanoid then
+        humanoid.AutoRotate = not aligned
+        self.IsCharacterAligned = aligned
+        self.CharacterAlignmentChangedEvent:Fire(aligned)
+    end
 end
 
 function CLASS:SetMouseStep(steppedIn)
@@ -192,7 +194,7 @@ function CLASS:LoadCameraSettings()
 end
 
 --// //--
-function CLASS:Update()
+function CLASS:Update(deltaTime)
     local currentCamera = workspace.CurrentCamera
     local activeCameraSettings = self.CameraSettings[self.ActiveCameraSettings]
 
@@ -206,7 +208,7 @@ function CLASS:Update()
     ---
 
     --// Address mouse input //--
-    local mouseDelta = USER_INPUT_SERVICE:GetMouseDelta() * activeCameraSettings.Sensitivity
+    local mouseDelta = MOUSE.Delta * activeCameraSettings.Sensitivity
     self.HorizontalAngle -= mouseDelta.X / currentCamera.ViewportSize.X
     self.VerticalAngle -= mouseDelta.Y / currentCamera.ViewportSize.Y
     self.VerticalAngle = math.rad(math.clamp(math.deg(self.VerticalAngle), self.VerticalAngleLimits.Min, self.VerticalAngleLimits.Max))
@@ -314,10 +316,10 @@ function CLASS:Enable()
     RUN_SERVICE:BindToRenderStep(
             UPDATE_UNIQUE_KEY,
             Enum.RenderPriority.Camera.Value - 10,
-            function()
+            function(deltaTime)
                 if (self.IsEnabled == true) then
                     local currentTime = tick()
-                    local deltaTime = currentTime - lastUpdateTime
+                    deltaTime = currentTime - lastUpdateTime
                     lastUpdateTime = currentTime
 
                     self:Update(deltaTime)
