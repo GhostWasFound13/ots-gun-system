@@ -238,7 +238,7 @@ function CLASS:Update(deltaTime)
                 CFrame.new(offset)
 
         -- Interpolate between the current camera CFrame and the target camera CFrame
-        currentCameraCFrame = currentCameraCFrame:Lerp(newCameraCFrame, activeCameraSettings.LerpSpeed)
+        currentCameraCFrame = currentCameraCFrame:Lerp(newCameraCFrame, activeCameraSettings.LerpSpeed * deltaTime)
         currentCamera.CFrame = currentCameraCFrame
         ----
 
@@ -314,17 +314,17 @@ function CLASS:Enable()
     self:ConfigureStateForEnabled()
 
     RUN_SERVICE:BindToRenderStep(
-            UPDATE_UNIQUE_KEY,
-            Enum.RenderPriority.Camera.Value - 10,
-            function(deltaTime)
-                if (self.IsEnabled == true) then
-                    local currentTime = tick()
-                    deltaTime = currentTime - lastUpdateTime
-                    lastUpdateTime = currentTime
+        UPDATE_UNIQUE_KEY,
+        Enum.RenderPriority.Camera.Value - 10,
+        function(deltaTime)
+            if (self.IsEnabled == true) then
+                local currentTime = tick()
+                deltaTime = currentTime - lastUpdateTime
+                lastUpdateTime = currentTime
 
-                    self:Update(deltaTime)
-                end
+                self:Update(deltaTime)
             end
+        end
     )
 end
 
