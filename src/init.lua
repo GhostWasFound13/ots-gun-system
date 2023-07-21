@@ -23,33 +23,27 @@ local Humanoid = Character:WaitForChild("Humanoid")
 --// CONFIG //--
 OTS_Cam.CameraSettings = {
     Default = {
-        Field_Of_View = 70,
+        FieldOfView = 70,
         Offset = Vector3.new(2.5, 2.5, 8),
-        Mouse_Sensitivity_X = 3,
-        Mouse_Sensitivity_Y = 3,
-        Touch_Sensitivity_X = 3,
-        Touch_Sensitivity_Y = 3,
-        Gamepad_Sensitivity_X = 10,
-        Gamepad_Sensitivity_Y = 10,
-        Lerp_Speed = 0.5,
-        Align_Character = true,
-        Lock_Mouse = true,
-        Shoulder_Direction = SHOULDER_DIRECTION.RIGHT
+        MouseSensitivity = 3,
+        TouchSensitivity = 3,
+        GamepadSensitivity = 10,
+        LerpSpeed = 0.2, -- Adjust this value to control the smoothness (lower values = smoother)
+        AlignCharacter = true,
+        LockMouse = true,
+        ShoulderDirection = SHOULDER_DIRECTION.RIGHT
     },
 
     Zoomed = {
-        Field_Of_View = 40,
+        FieldOfView = 40,
         Offset = Vector3.new(1.5, 1.5, 6),
-        Mouse_Sensitivity_X = 1.5,
-        Mouse_Sensitivity_Y = 1.5,
-        Touch_Sensitivity_X = 1.5,
-        Touch_Sensitivity_Y = 1.5,
-        Gamepad_Sensitivity_X = 5,
-        Gamepad_Sensitivity_Y = 5,
-        Lerp_Speed = 0.5,
-        Align_Character = true,
-        Lock_Mouse = true,
-        Shoulder_Direction = SHOULDER_DIRECTION.RIGHT
+        MouseSensitivity = 1.5,
+        TouchSensitivity = 1.5,
+        GamepadSensitivity = 5,
+        LerpSpeed = 0.2, -- Adjust this value to control the smoothness (lower values = smoother)
+        AlignCharacter = true,
+        LockMouse = true,
+        ShoulderDirection = SHOULDER_DIRECTION.RIGHT
     }
 }
 
@@ -94,27 +88,24 @@ end
 local function getDelta()
     local delta = Input.GetDelta()
 
-    local xSensitivity, ySensitivity
+    local sensitivity
     if UserInputService.GamepadEnabled then
-        xSensitivity = OTS_Cam.CameraSettings[CameraMode].Gamepad_Sensitivity_X
-        ySensitivity = OTS_Cam.CameraSettings[CameraMode].Gamepad_Sensitivity_Y
+        sensitivity = OTS_Cam.CameraSettings[CameraMode].GamepadSensitivity
     elseif UserInputService.TouchEnabled then
-        xSensitivity = OTS_Cam.CameraSettings[CameraMode].Touch_Sensitivity_X
-        ySensitivity = OTS_Cam.CameraSettings[CameraMode].Touch_Sensitivity_Y
+        sensitivity = OTS_Cam.CameraSettings[CameraMode].TouchSensitivity
     else
-        xSensitivity = OTS_Cam.CameraSettings[CameraMode].Mouse_Sensitivity_X
-        ySensitivity = OTS_Cam.CameraSettings[CameraMode].Mouse_Sensitivity_Y
+        sensitivity = OTS_Cam.CameraSettings[CameraMode].MouseSensitivity
     end
 
-    return Vector2.new(delta.X * xSensitivity, delta.Y * ySensitivity)
+    return Vector2.new(delta.X * sensitivity, delta.Y * sensitivity)
 end
 
 local function configureStateForEnabled()
     saveDefaultCamera()
     CameraMode = "Default"
-    OTS_Cam.SetCharacterAlignment(OTS_Cam.CameraSettings[CameraMode].Align_Character)
-    OTS_Cam.LockMouse(OTS_Cam.CameraSettings[CameraMode].Lock_Mouse)
-    OTS_Cam.ShoulderDirection = OTS_Cam.CameraSettings[CameraMode].Shoulder_Direction
+    OTS_Cam.SetCharacterAlignment(OTS_Cam.CameraSettings[CameraMode].AlignCharacter)
+    OTS_Cam.LockMouse(OTS_Cam.CameraSettings[CameraMode].LockMouse)
+    OTS_Cam.ShoulderDirection = OTS_Cam.CameraSettings[CameraMode].ShoulderDirection
 
     --// Calculate angles //--
     local cameraCFrame = workspace.CurrentCamera.CFrame
@@ -135,7 +126,7 @@ local function configureStateForDisabled()
     OTS_Cam.VerticalAngle = 0
 end
 
-local function updateCamera()
+local function updateCamera(deltaTime)
     local currentCamera = workspace.CurrentCamera
     local activeCameraSettings = OTS_Cam.CameraSettings[CameraMode]
 
@@ -152,11 +143,11 @@ local function updateCamera()
 
     local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
     if humanoidRootPart then -- Disable if Player dies
-        currentCamera.FieldOfView = Lerp(
-            currentCamera.FieldOfView,
-            activeCameraSettings.Field_Of_View,
-            activeCameraSettings.Lerp_Speed
-        )
+        -- Interpolate angles smoothly
+        OTS_Cam.HorizontalAngle = Lerp(OTS_Cam.HorizontalAngle, OTS_Cam.HorizontalAngle, activeCameraSettings.LerpSpeed * deltaTime)
+        OTS_Cam.VerticalAngle = Lerp(OTS_Cam.VerticalAngle, OTS_Cam.VerticalAngle, activeCameraSettings.LerpSpeed * deltaTime)
+
+        currentCamera.FieldOfView = Lerp(currentCamera.FieldOfView, activeCameraSettings.FieldOfView, activeCameraSettings.LerpSpeed)
 
         --// Address shoulder direction //--
         local offset = activeCameraSettings.Offset
@@ -169,7 +160,7 @@ local function updateCamera()
             CFrame.Angles(OTS_Cam.VerticalAngle, 0, 0) *
             CFrame.new(offset)
 
-        newCameraCFrame = currentCamera.CFrame:Lerp(newCameraCFrame, activeCameraSettings.Lerp_Speed)
+        newCameraCFrame = currentCamera.CFrame:Lerp(newCameraCFrame, activeCameraSettings.LerpSpeed)
         ----
 
         --// Raycast for obstructions //--
@@ -193,10 +184,10 @@ local function updateCamera()
         ----
 
         --// Address character alignment //--
-        if activeCameraSettings.Align_Character then
+        if activeCameraSettings.AlignCharacter then
             local newHumanoidRootPartCFrame = CFrame.new(humanoidRootPart.Position) *
                 CFrame.Angles(0, OTS_Cam.HorizontalAngle, 0)
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(newHumanoidRootPartCFrame, activeCameraSettings.Lerp_Speed/2)
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(newHumanoidRootPartCFrame, activeCameraSettings.LerpSpeed / 2)
         end
         ----
 
@@ -231,9 +222,9 @@ function OTS_Cam.Enable()
     RunService:BindToRenderStep(
         "OTS_CAMERA",
         Enum.RenderPriority.Camera.Value - 10,
-        function()
+        function(deltaTime)
             if OTS_Cam.IsEnabled then
-                updateCamera()
+                updateCamera(deltaTime)
             end
         end
     )
