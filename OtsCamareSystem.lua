@@ -197,7 +197,7 @@ function OTS_Client:Update(deltaTime)
             * CFrame.new(0, 0, -activeCameraSettings.Offset.Z)
 
         -- Interpolate between the current camera CFrame and the target camera CFrame
-        currentCameraCFrame = currentCameraCFrame:Lerp(newCameraCFrame, activeCameraSettings.LerpSpeed * deltaTime)
+        currentCameraCFrame = Lerp(currentCameraCFrame, newCameraCFrame, activeCameraSettings.LerpSpeed * deltaTime)
         currentCamera.CFrame = currentCameraCFrame
 
         -- Raycast for obstructions
@@ -222,7 +222,7 @@ function OTS_Client:Update(deltaTime)
         -- Address character alignment
         if self.IsCharacterAligned then
             local newHumanoidRootPartCFrame = CFrame.new(humanoidRootPart.Position) * CFrame.Angles(0, self.HorizontalAngle, 0)
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(newHumanoidRootPartCFrame, activeCameraSettings.LerpSpeed / 2)
+            humanoidRootPart.CFrame = Lerp(humanoidRootPart.CFrame, newHumanoidRootPartCFrame, activeCameraSettings.LerpSpeed / 2)
         end
     else
         self:Disable()
