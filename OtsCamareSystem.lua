@@ -1,4 +1,4 @@
-local CLASS = {}
+local OTS_Client = {}
 
 --// SERVICES //--
 
@@ -21,7 +21,7 @@ local targetCameraCFrame = nil
 
 --// CONSTRUCTOR //--
 
-function CLASS.new()
+function OTS_Client.new()
     local dataTable = setmetatable(
         {
             --// Properties //--
@@ -70,7 +70,7 @@ function CLASS.new()
             ----
 
         },
-        CLASS
+        OTS_Client
     )
     local proxyTable = setmetatable(
         {
@@ -97,7 +97,7 @@ end
 
 --// METHODS //--
 
-function CLASS:SetActiveCameraSettings(cameraSettings)
+function OTS_Client:SetActiveCameraSettings(cameraSettings)
     assert(cameraSettings ~= nil, "OTS Camera System Argument Error: Argument 1 nil or missing")
     assert(typeof(cameraSettings) == "string", "OTS Camera System Argument Error: string expected, got " .. typeof(cameraSettings))
     assert(self.CameraSettings[cameraSettings] ~= nil, "OTS Camera System Argument Error: Attempt to set unrecognized camera settings " .. cameraSettings)
@@ -110,7 +110,7 @@ function CLASS:SetActiveCameraSettings(cameraSettings)
     self.ActiveCameraSettingsChangedEvent:Fire(cameraSettings)
 end
 
-function CLASS:SetCharacterAlignment(aligned)
+function OTS_Client:SetCharacterAlignment(aligned)
     assert(aligned ~= nil, "OTS Camera System Argument Error: Argument 1 nil or missing")
     assert(typeof(aligned) == "boolean", "OTS Camera System Argument Error: boolean expected, got " .. typeof(aligned))
     if not self.IsEnabled then
@@ -130,7 +130,7 @@ function CLASS:SetCharacterAlignment(aligned)
     end
 end
 
-function CLASS:SetMouseStep(steppedIn)
+function OTS_Client:SetMouseStep(steppedIn)
     assert(steppedIn ~= nil, "OTS Camera System Argument Error: Argument 1 nil or missing")
     assert(typeof(steppedIn) == "boolean", "OTS Camera System Argument Error: boolean expected, got " .. typeof(steppedIn))
     if not self.IsEnabled then
@@ -143,7 +143,7 @@ function CLASS:SetMouseStep(steppedIn)
     UserInputService.MouseBehavior = steppedIn and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
 end
 
-function CLASS:SetShoulderDirection(shoulderDirection)
+function OTS_Client:SetShoulderDirection(shoulderDirection)
     assert(shoulderDirection ~= nil, "OTS Camera System Argument Error: Argument 1 nil or missing")
     assert(typeof(shoulderDirection) == "number", "OTS Camera System Argument Error: number expected, got " .. typeof(shoulderDirection))
     assert(math.abs(shoulderDirection) == 1, "OTS Camera System Argument Error: Attempt to set unrecognized shoulder direction " .. shoulderDirection)
@@ -156,7 +156,7 @@ function CLASS:SetShoulderDirection(shoulderDirection)
     self.ShoulderDirectionChangedEvent:Fire(shoulderDirection)
 end
 
-function CLASS:SaveCameraSettings()
+function OTS_Client:SaveCameraSettings()
     local currentCamera = workspace.CurrentCamera
     self.SavedCameraSettings = {
         FieldOfView = currentCamera.FieldOfView,
@@ -165,14 +165,14 @@ function CLASS:SaveCameraSettings()
     }
 end
 
-function CLASS:LoadCameraSettings()
+function OTS_Client:LoadCameraSettings()
     local currentCamera = workspace.CurrentCamera
     for setting, value in pairs(self.SavedCameraSettings) do
         currentCamera[setting] = value
     end
 end
 
-function CLASS:Update(deltaTime)
+function OTS_Client:Update(deltaTime)
     local currentCamera = workspace.CurrentCamera
     local activeCameraSettings = self.CameraSettings[self.ActiveCameraSettings]
 
@@ -229,7 +229,7 @@ function CLASS:Update(deltaTime)
     end
 end
 
-function CLASS:ConfigureStateForEnabled()
+function OTS_Client:ConfigureStateForEnabled()
     self:SaveCameraSettings()
     self.SavedMouseBehavior = UserInputService.MouseBehavior
     self:SetCharacterAlignment(false)
@@ -243,7 +243,7 @@ function CLASS:ConfigureStateForEnabled()
     self.VerticalAngle = math.rad(math.clamp(math.deg(x), self.VerticalAngleLimits.Min, self.VerticalAngleLimits.Max))
 end
 
-function CLASS:ConfigureStateForDisabled()
+function OTS_Client:ConfigureStateForDisabled()
     self:LoadCameraSettings()
     UserInputService.MouseBehavior = self.SavedMouseBehavior
     self:SetCharacterAlignment(false)
@@ -253,7 +253,7 @@ function CLASS:ConfigureStateForDisabled()
     self.VerticalAngle = 0
 end
 
-function CLASS:Enable()
+function OTS_Client:Enable()
     assert(not self.IsEnabled, "OTS Camera System Logic Error: Attempt to enable without disabling")
 
     self.IsEnabled = true
@@ -275,7 +275,7 @@ function CLASS:Enable()
     )
 end
 
-function CLASS:Disable()
+function OTS_Client:Disable()
     assert(self.IsEnabled, "OTS Camera System Logic Error: Attempt to disable without enabling")
 
     self:ConfigureStateForDisabled()
@@ -287,9 +287,9 @@ end
 
 --// INSTRUCTIONS //--
 
-CLASS.__index = CLASS
+OTS_Client.__index = OTS_Client
 
-local singleton = CLASS.new()
+local singleton = OTS_Client.new()
 
 UserInputService.InputBegan:Connect(function(inputObject, gameProcessedEvent)
     if not gameProcessedEvent and singleton.IsEnabled then
