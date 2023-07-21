@@ -253,6 +253,53 @@ function OTS_Client:ConfigureStateForDisabled()
     self.VerticalAngle = 0
 end
 
+function OTS_Client:UpdateThirdPerson(deltaTime)
+    local character = LocalPlayer.Character
+    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character and character:FindFirstChild("Humanoid")
+
+    if not humanoidRootPart or not humanoid then
+        self:Disable()
+        return
+    end
+
+    local camera = workspace.CurrentCamera
+    local targetPosition = humanoidRootPart.Position - camera.CFrame.LookVector * 15
+    local targetLookAt = humanoidRootPart.Position
+
+    local newCameraCFrame = CFrame.new(targetPosition, targetLookAt)
+    currentCameraCFrame = Lerp(currentCameraCFrame, newCameraCFrame, 0.1) -- Smoothly interpolate the camera position
+
+    camera.CFrame = currentCameraCFrame
+end
+
+function OTS_Client:EnableThirdPerson()
+    assert(not self.IsThirdPersonEnabled, "OTS Camera System Logic Error: Attempt to enable third-person camera without disabling first-person camera")
+
+    self.IsThirdPersonEnabled = true
+    self:ConfigureStateForEnabled()
+    self:UpdateThirdPerson()
+
+    RunService:BindToRenderStep(
+        UPDATE_UNIQUE_KEY,
+        Enum.RenderPriority.Camera.Value - 10,
+        function(deltaTime)
+            if self.IsThirdPersonEnabled then
+                self:UpdateThirdPerson(deltaTime)
+            end
+        end
+    )
+end
+
+function OTS_Client:DisableThirdPerson()
+    assert(self.IsThirdPersonEnabled, "OTS Camera System Logic Error: Attempt to disable third-person camera without enabling")
+
+    self:ConfigureStateForDisabled()
+    self.IsThirdPersonEnabled = false
+
+    RunService:UnbindFromRenderStep(UPDATE_UNIQUE_KEY)
+end
+
 function OTS_Client:Enable()
     assert(not self.IsEnabled, "OTS Camera System Logic Error: Attempt to enable without disabling")
 
