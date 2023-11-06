@@ -333,65 +333,76 @@ do
         return newArmAttachment, angle0 + math.pi / 2, angle1 - angle0
     end
 end
-	function Physics.InverseKinematics.SolveLeg(a, b, l0, l1)
-		local l = a:pointToObjectSpace(b)
-		local lu = l.unit
-		local m = l.magnitude
-		local x = forward:Cross(-lu)
-		local g = acos(-lu.Z)
-		local p0 = a * fromaxisangle(x, g)
-		local p1 = a * fromaxisangle(x, g):inverse()
-		if m < max(l1, l0) - min(l1, l0) then
-			return p1 * cf(0, 0, max(l1, l0) - min(l1, l0) - m), -pi / 2, pi
-		elseif m > l0 + l1 then
-			return p1 * cf(0, 0, l0 + l1 - m), pi / 2, 0
-		else
-			local a1 = -acos((-(l1 * l1) + l0 * l0 + m * m) / (2 * l0 * m))
-			local a2 = acos((l1 * l1 - l0 * l0 + m * m) / (2 * l1 * m))
-			return p0, -(a1 + pi / 2), -(a2 - a1)
-		end
-	end
+	function Physics.InverseKinematics.SolveLeg(legAttachment, targetAttachment, legLength0, legLength1)
+    local legVector = legAttachment:pointToObjectSpace(targetAttachment)
+    local legUnit = legVector.unit
+    local legMagnitude = legVector.magnitude
+    local crossProduct = forward:Cross(-legUnit)
+    local angle = acos(-legUnit.Z)
+    local positiveRotation = legAttachment * fromaxisangle(crossProduct, angle)
+    local negativeRotation = legAttachment * fromaxisangle(crossProduct, angle):inverse()
+    
+    if legMagnitude < max(legLength1, legLength0) - min(legLength1, legLength0) then
+        return negativeRotation * CFrame.new(0, 0, max(legLength1, legLength0) - min(legLength1, legLength0) - legMagnitude), -math.pi / 2, math.pi
+    elseif legMagnitude > legLength0 + legLength1 then
+        return negativeRotation * CFrame.new(0, 0, legLength0 + legLength1 - legMagnitude), math.pi / 2, 0
+    else
+        local angle1 = -acos((-(legLength1 * legLength1) + legLength0 * legLength0 + legMagnitude * legMagnitude) / (2 * legLength0 * legMagnitude))
+        local angle2 = acos((legLength1 * legLength1 - legLength0 * legLength0 + legMagnitude * legMagnitude) / (2 * legLength1 * legMagnitude))
+        return positiveRotation, -(angle1 + math.pi / 2), -(angle2 - angle1)
+    end
+end
 	do
 		local player = game.Players.LocalPlayer
 		local character, uppertorso, rightupperarm, rightlowerarm, rightshoulder, rightelbow, leftupperarm, leftlowerarm, leftshoulder, leftelbow
 		local elbowangle = cf(0, -0.2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local ro1 = cf(1, 0.4, 0)
 		local ro2 = cf(-1, 0.4, 0)
-		local function connectjoints()
-			if character and uppertorso and rightupperarm and rightlowerarm and rightshoulder and rightelbow and leftupperarm and leftlowerarm and leftshoulder and leftelbow then
-				return
-			end
-			if not character then
-				character = player.Character or player.CharacterAdded:wait()
-			end
-			if not uppertorso then
-				uppertorso = wfc(character, "UpperTorso")
-			end
-			if not rightupperarm then
-				rightupperarm = wfc(character, "RightUpperArm")
-			end
-			if not rightlowerarm then
-				rightlowerarm = wfc(character, "RightLowerArm")
-			end
-			if not rightshoulder then
-				rightshoulder = wfc(rightupperarm, "RightShoulder")
-			end
-			if not rightelbow then
-				rightelbow = wfc(rightlowerarm, "RightElbow")
-			end
-			if not leftupperarm then
-				leftupperarm = wfc(character, "LeftUpperArm")
-			end
-			if not leftlowerarm then
-				leftlowerarm = wfc(character, "LeftLowerArm")
-			end
-			if not leftshoulder then
-				leftshoulder = wfc(leftupperarm, "LeftShoulder")
-			end
-			if not leftelbow then
-				leftelbow = wfc(leftlowerarm, "LeftElbow")
-			end
-		end
+		local function connectJoints()
+    if character and uppertorso and rightupperarm and rightlowerarm and rightshoulder and rightelbow and leftupperarm and leftlowerarm and leftshoulder and leftelbow then
+        return
+    end
+
+    if not character then
+        character = player.Character or player.CharacterAdded:Wait()
+    end
+
+    if not uppertorso then
+        uppertorso = wfc(character, "UpperTorso")
+    end
+
+    if not rightupperarm then
+        rightupperarm = wfc(character, "RightUpperArm")
+    end
+
+    if not rightlowerarm then
+        rightlowerarm = wfc(character, "RightLowerArm")
+    end
+
+    if not rightshoulder then
+        rightshoulder = wfc(rightupperarm, "RightShoulder")
+    end
+
+    if not rightelbow then
+        rightelbow = wfc(rightlowerarm, "RightElbow")
+    end
+
+    if not leftupperarm then
+        leftupperarm = wfc(character, "LeftUpperArm")
+    end
+
+    if not leftlowerarm then
+        leftlowerarm = wfc(character, "LeftLowerArm")
+    end
+
+    if not leftshoulder then
+        leftshoulder = wfc(leftupperarm, "LeftShoulder")
+    end
+
+    if not leftelbow then
+        leftelbow = wfc(leftlowerarm, "LeftElbow")
+    end
+end
 		local solvearm = Physics.InverseKinematics.SolveArm
 		local v3 = Vector3.new
 		local cf = CFrame.new
