@@ -2306,19 +2306,18 @@ do
 		end
 		
 		local function handleAction(actionName, inputState, inputObj)
-    local currentWeapon = Combat.CurrentWeapon
-    
-    if inputState == Enum.UserInputState.Begin then
-        if currentWeapon.startfiring then
-            currentWeapon.startfiring()
-        end
-        if currentWeapon.attack then
-            currentWeapon.attack()
-        end
-    elseif inputState == Enum.UserInputState.End then
-        currentWeapon.firing = false
-    end
-end
+	    	if inputState == Enum.UserInputState.Begin then
+				if Combat.CurrentWeapon.startfiring ~= nil then
+					Combat.CurrentWeapon.startfiring()
+				end
+				if Combat.CurrentWeapon ~= nil and Combat.CurrentWeapon.attack ~= nil then
+					Combat.CurrentWeapon.attack()
+				end
+	    	elseif inputState == Enum.UserInputState.End then
+				Combat.CurrentWeapon.firing = false
+			end
+ 		end
+ 
 		
 		local Button = CAS:BindAction("AimButton", aimButtonPress, true, "")
 		CAS:SetPosition("AimButton", UDim2.new(0.65, -25, 0.10, -25))
