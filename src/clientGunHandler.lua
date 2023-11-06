@@ -137,16 +137,16 @@ do
 	local MouseButton2Holding = false
 	
 	UIS.InputBegan:Connect(function(io, cancel)
-		if io.UserInputType == Enum.UserInputType.MouseButton2 then
-			MouseButton2Holding = true
-			UIS.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
-		end
-		
-		if io.UserInputType == Enum.UserInputType.Touch then
-		Input.TouchDelta = Vector3.new()
-		lastPos = Vector3.new()
-	end
-	end)
+    if io.UserInputType == Enum.UserInputType.MouseButton2 then
+        MouseButton2Holding = true
+        UIS.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+    end
+    
+    if io.UserInputType == Enum.UserInputType.Touch then
+        Input.TouchDelta = Vector3.new()
+        lastPos = Vector3.new()
+    end
+end)
 	
 	UIS.InputEnded:Connect(function(io, cancel)
 		if io.UserInputType == Enum.UserInputType.MouseButton2 then
@@ -191,14 +191,14 @@ do
 		end
 	end
 	function Input.MatchKey(io, keys)
-		keys = keys or {}
-		for i, v in pairs(keys) do
-			if v and (io.UserInputType == v or io.KeyCode == v) then
-				return true
-			end
-		end
-		return false
-	end
+    keys = keys or {}
+    for i, v in pairs(keys) do
+        if v and (io.UserInputType == v or io.KeyCode == v) then
+            return true
+        end
+    end
+    return false
+end
 	function Input.Step()
 		Input.GamepadConnected = UIS:GetGamepadConnected(Enum.UserInputType.Gamepad1)
 		Input.MouseDelta = v3()
@@ -315,23 +315,24 @@ do
 			})
 		end
 	end
-	function Physics.InverseKinematics.SolveArm(a, b, l0, l1)
-		local l = a:pointToObjectSpace(b)
-		local u = l.unit
-		local m = l.magnitude
-		local x = forward:Cross(u)
-		local g = acos(-u.Z)
-		local p = a * fromaxisangle(x, g)
-		if m < max(l0, l1) - min(l0, l1) then
-			return p * cf(0, 0, max(l0, l1) - min(l0, l1) - m), -pi / 2, pi
-		elseif m > l0 + l1 then
-			return p * cf(0, 0, l0 + l1 - m), pi / 2, 0
-		else
-			local a0 = -acos((-(l1 * l1) + l0 * l0 + m * m) / (2 * l0 * m))
-			local a1 = acos((l1 * l1 - l0 * l0 + m * m) / (2 * l1 * m))
-			return p, a0 + pi / 2, a1 - a0
-		end
-	end
+	function Physics.InverseKinematics.SolveArm(armAttachment, targetAttachment, armLength0, armLength1)
+    local armVector = armAttachment:pointToObjectSpace(targetAttachment)
+    local armUnit = armVector.unit
+    local armMagnitude = armVector.magnitude
+    local crossProduct = forward:Cross(armUnit)
+    local angle = acos(-armUnit.Z)
+    local newArmAttachment = armAttachment * fromaxisangle(crossProduct, angle)
+    
+    if armMagnitude < max(armLength0, armLength1) - min(armLength0, armLength1) then
+        return newArmAttachment * CFrame.new(0, 0, max(armLength0, armLength1) - min(armLength0, armLength1) - armMagnitude), -math.pi / 2, math.pi
+    elseif armMagnitude > armLength0 + armLength1 then
+        return newArmAttachment * CFrame.new(0, 0, armLength0 + armLength1 - armMagnitude), math.pi / 2, 0
+    else
+        local angle0 = -acos((-(armLength1 * armLength1) + armLength0 * armLength0 + armMagnitude * armMagnitude) / (2 * armLength0 * armMagnitude))
+        local angle1 = acos((armLength1 * armLength1 - armLength0 * armLength0 + armMagnitude * armMagnitude) / (2 * armLength1 * armMagnitude))
+        return newArmAttachment, angle0 + math.pi / 2, angle1 - angle0
+    end
+end
 	function Physics.InverseKinematics.SolveLeg(a, b, l0, l1)
 		local l = a:pointToObjectSpace(b)
 		local lu = l.unit
